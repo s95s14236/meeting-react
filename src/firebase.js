@@ -1,15 +1,17 @@
-// import { initializeApp } from 'firebase/app';
-// import { getFirestore } from 'firebase/firestore';
+import { initializeApp } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 
-// const firebaseConfig = {
-//     apiKey: "AIzaSyC3oqkUEn7KF9wDV2-pPYR0w_-ovrnxPTs",
-//     authDomain: "meeting-6a4a2.firebaseapp.com",
-//     projectId: "meeting-6a4a2",
-//     storageBucket: "meeting-6a4a2.appspot.com",
-//     messagingSenderId: "654889178463",
-//     appId: "1:654889178463:web:9f9de90607b4498fc3d2ea"
-// }
+console.log('initializeApp');
 
-// const app = initializeApp(firebaseConfig);
+const firebaseConfig = {
+    apiKey: "AIzaSyC3oqkUEn7KF9wDV2-pPYR0w_-ovrnxPTs",
+    authDomain: "meeting-6a4a2.firebaseapp.com",
+    projectId: "meeting-6a4a2",
+    storageBucket: "meeting-6a4a2.appspot.com",
+    messagingSenderId: "654889178463",
+    appId: "1:654889178463:web:9f9de90607b4498fc3d2ea"
+}
 
-// export const db = getFirestore(app);
+const app = initializeApp(firebaseConfig);
+
+export const db = getFirestore(app);
