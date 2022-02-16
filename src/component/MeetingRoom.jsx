@@ -32,9 +32,9 @@ const MeetingRoom = (props) => {
             checkCameraAndMicrophone();
             if (channelID !== '') {
                 setCallID(channelID);
-                // joinCall();
+                joinCall();
             } else {
-                // createCall();
+                createCall();
             }
         }).catch(error => {
             console.error(error);
@@ -182,9 +182,7 @@ const MeetingRoom = (props) => {
     };
 
     const toggleInfo = () => {
-        setIsShowInfo((prev) => {
-            
-        })
+        setIsShowInfo((prev) => !prev)
     };
 
     const toggleCamera = () => {
@@ -231,9 +229,9 @@ const MeetingRoom = (props) => {
                     </svg>
                 </button>
             </div>
-            <div className='absolute bottom-8 right-8'>
+            <div className='absolute bottom-24 right-8'>
                 <button
-                    onClick={toggleCamera}
+                    onClick={toggleInfo}
                     className={(isShowInfo ? "bg-gray-300 hover:bg-gray-400" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-8 h-8 rounded-full"}
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -241,7 +239,10 @@ const MeetingRoom = (props) => {
                     </svg>
                 </button>
             </div>
-            
+            {isShowInfo && callID && <div className='w-80 h-40 p-4 absolute bottom-36 right-4 bg-white rounded-md'>
+                會議代碼：{callID}
+            </div>}
+
             {/* <button onClick={startWebcam}>開啟視訊</button>
             <button onClick={createCall}>發起通話</button>
             <input value={callID} onChange={(e) => setCallID(e.target.value)}></input>
