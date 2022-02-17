@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 import { db } from '../firebase';
 
-import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc } from 'firebase/firestore';
+import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 
 const server = {
     iceServers: [
@@ -19,21 +19,25 @@ let remoteStream = null;
 
 const MeetingRoom = (props) => {
     const { channelID, setIsJoin } = props;
+    const callID = useRef('');
     const localVideo = useRef();
     const remoteVideo = useRef();
-    const [callID, setCallID] = useState('');
     const [isEnableCamera, setIsEnableCamera] = useState(false);
     const [isEnableMicrophone, setIsEnableMicrophone] = useState(false);
     const [isShowInfo, setIsShowInfo] = useState(false);
+    const [popupInfo, setPopupInfo] = useState({ isShowPopup: false, popupMessage: '' });
+    const [isCaller, setIsCaller] = useState(false);
 
     useEffect(() => {
         pc = new RTCPeerConnection(server);
+        registerPeerConnectionListeners();
         startWebcam().then(() => {
             checkCameraAndMicrophone();
             if (channelID !== '') {
-                setCallID(channelID);
+                callID.current = channelID;
                 joinCall();
             } else {
+                setIsCaller(true);
                 createCall();
             }
         }).catch(error => {
@@ -73,15 +77,12 @@ const MeetingRoom = (props) => {
         const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
         const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
 
-        setCallID(docRef.id);
-        console.log('callID', docRef.id);
+        callID.current = docRef.id;
 
         pc.onicecandidate = event => {
             console.log('onicecandidate', event);
             event.candidate && addDoc(offerCandidatesRef, event.candidate.toJSON());
         }
-
-        subscribePCEvent();
 
         const offerDescription = await pc.createOffer();
         await pc.setLocalDescription(offerDescription);
@@ -155,7 +156,7 @@ const MeetingRoom = (props) => {
     /**
      * 結束通話
      */
-    const hangup = () => {
+    const hangup = async () => {
         console.log('hangup');
         if (!pc) return;
 
@@ -181,6 +182,20 @@ const MeetingRoom = (props) => {
         pc.close();
         pc = null;
 
+        const docRef = doc(db, "calls", callID.current);
+        if (isCaller) {
+            const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
+            (await getDocs(query(offerCandidatesRef))).docs.forEach((doc) => {
+                console.log(doc.data());
+                deleteDoc(doc.ref);
+            })
+        } else {
+            const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
+            (await getDocs(query(answerCandidatesRef))).forEach(async (doc) => {
+                await deleteDoc(doc.ref);
+            })
+        }
+
         setIsJoin(false);
     };
 
@@ -199,16 +214,20 @@ const MeetingRoom = (props) => {
     }
 
     const checkCameraAndMicrophone = () => {
-        console.log('456');
         setIsEnableMicrophone(localStream.getAudioTracks()[0].enabled);
         setIsEnableCamera(localStream.getVideoTracks()[0].enabled);
     }
 
-    const subscribePCEvent = () => {
+    const registerPeerConnectionListeners = () => {
         pc.oniceconnectionstatechange = () => {
+            console.log(pc.iceConnectionState);
             if (pc.iceConnectionState === 'disconnected') {
                 console.log('remote Disconnected');
-                remoteVideo.current.srcObject = null;
+                // remoteVideo.current.srcObject = null;
+                setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
+                setTimeout(() => {
+                    hangup();
+                }, 3000)
             }
         }
     }
@@ -255,9 +274,15 @@ const MeetingRoom = (props) => {
                     </svg>
                 </button>
             </div>
-            {isShowInfo && callID && <div className='w-80 h-40 p-4 absolute bottom-36 right-4 bg-white rounded-md'>
-                會議代碼：{callID}
+            {isShowInfo && callID.current !== '' && <div className='w-80 h-40 p-4 absolute bottom-36 right-4 bg-white rounded-md'>
+                會議代碼：{callID.current}
             </div>}
+
+            {
+                popupInfo.isShowPopup && <div className='w-80 h-40 p-4 absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] bg-white rounded-md text-red-800 flex justify-center items-center'>
+                    {popupInfo.popupMessage}
+                </div>
+            }
 
             {/* <button onClick={startWebcam}>開啟視訊</button>
             <button onClick={createCall}>發起通話</button>
