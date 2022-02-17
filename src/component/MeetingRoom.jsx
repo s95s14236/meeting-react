@@ -129,6 +129,13 @@ const MeetingRoom = (props) => {
         }
 
         const offerDesription = callDoc.data();
+        if (!offerDesription) {
+            setPopupInfo({isShowPopup: true, popupMessage: '找不到房間'});
+            setTimeout(() => {
+                hangup();
+            }, 3000);
+            return;
+        }
         await pc.setRemoteDescription(new RTCSessionDescription(offerDesription));
 
         const answerDescription = await pc.createAnswer();
@@ -274,8 +281,9 @@ const MeetingRoom = (props) => {
                     </svg>
                 </button>
             </div>
-            {isShowInfo && callID.current !== '' && <div className='w-80 h-40 p-4 absolute bottom-36 right-4 bg-white rounded-md'>
-                會議代碼：{callID.current}
+            {isShowInfo && callID.current !== '' && <div className='w-96 h-40 p-4 absolute bottom-36 right-8 bg-white rounded-md'>
+                會議代碼：<br />{callID.current}<br /><br />
+                會議連結：<br />{window.location.href + callID.current}
             </div>}
 
             {

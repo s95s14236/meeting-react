@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import '../App.css'
 
 const Home = (props) => {
-    const { setIsJoin, setChannelID } = props;
+    const { setIsJoin, channelID, setChannelID } = props;
+    const [errorInfo, setErrorInfo] = useState({isShowError: false, errorMessage: ''});
 
     const onCreateClick = () => {
         console.log('onCreateClick');
@@ -10,7 +12,12 @@ const Home = (props) => {
 
     const onJoinClick = () => {
         console.log('onJoinClick');
-        setIsJoin(true);
+        if (channelID && channelID.trim() !== '') {
+            setErrorInfo({isShowError: false, errorMessage: ''});
+            setIsJoin(true);
+        } else {
+            setErrorInfo({isShowError: true, errorMessage: '加入失敗'});
+        }
     };
 
     return (
@@ -38,6 +45,7 @@ const Home = (props) => {
                                 className="pl-2 h-12 mt-2 rounded-md border-2 border-gray-500 sm:ml-4 sm:mt-0" placeholder="輸入會議代碼"
                                 onChange={(e) => setChannelID(e.target.value)}
                             />
+                            {errorInfo.isShowError && <p className='pl-1 text-red-700'>{errorInfo.errorMessage}</p>}
                             <button
                                 className="h-12 w-20 mt-2 hover:bg-blue-100 rounded-md sm:ml-2 sm:mt-0 text-blue-800"
                                 onClick={onJoinClick}

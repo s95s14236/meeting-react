@@ -21,7 +21,7 @@ function App() {
 
   return (
     <div className="App">
-      {isJoin ? <MeetingRoom channelID={channelID} setIsJoin={setIsJoin} /> : <Home setIsJoin={setIsJoin} setChannelID={setChannelID} />}
+      {isJoin ? <MeetingRoom channelID={channelID} setIsJoin={setIsJoin} /> : <Home setIsJoin={setIsJoin} channelID={channelID} setChannelID={setChannelID} />}
     </div>
   );
 }
