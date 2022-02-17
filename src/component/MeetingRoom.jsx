@@ -81,6 +81,8 @@ const MeetingRoom = (props) => {
             event.candidate && addDoc(offerCandidatesRef, event.candidate.toJSON());
         }
 
+        subscribePCEvent();
+
         const offerDescription = await pc.createOffer();
         await pc.setLocalDescription(offerDescription);
 
@@ -163,6 +165,7 @@ const MeetingRoom = (props) => {
         pc.ontrack = null;
         pc.onicecandidate = null;
         pc.onnegotiationneeded = null;
+        unSubscribePCEvent();
 
         pc.getSenders().forEach((sender) => {
             pc.removeTrack(sender);
@@ -199,6 +202,19 @@ const MeetingRoom = (props) => {
         console.log('456');
         setIsEnableMicrophone(localStream.getAudioTracks()[0].enabled);
         setIsEnableCamera(localStream.getVideoTracks()[0].enabled);
+    }
+
+    const subscribePCEvent = () => {
+        pc.oniceconnectionstatechange = () => {
+            if (pc.iceConnectionState === 'disconnected') {
+                console.log('remote Disconnected');
+                remoteVideo.current.srcObject = null;
+            }
+        }
+    }
+
+    const unSubscribePCEvent = () => {
+        pc.oniceconnectionstatechange = null;
     }
 
     return (
