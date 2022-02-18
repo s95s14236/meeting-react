@@ -12,7 +12,6 @@ function App() {
   const { joinChannelID } = useParams();
 
   useEffect(() => {
-    console.log(joinChannelID);
     if (joinChannelID) {
       setChannelID(joinChannelID)
       setIsJoin(true)
