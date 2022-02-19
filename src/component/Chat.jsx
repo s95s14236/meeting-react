@@ -12,6 +12,9 @@ const Chat = (props) => {
         queryChatMessage();
     }, [])
 
+    /**
+     * 初始化訊息data
+     */
     const queryChatMessage = () => {
         const callDocRef = doc(db, 'calls', channelID);
         console.log(callDocRef.path);
@@ -22,6 +25,9 @@ const Chat = (props) => {
         });
     }
 
+    /**
+     * 發送訊息
+     */
     const sendMessage = async () => {
         const callDocRef = doc(db, 'calls', channelID);
         const chatMessagesRef = collection(db, callDocRef.path, 'chatMessages');
@@ -30,7 +36,7 @@ const Chat = (props) => {
     }
 
     return (
-        <div className="sm:w-full sm:h-full bg-slate-50">
+        <div className="w-full h-full sm:w-full sm:h-full bg-slate-50">
             <div className="w-full h-[90%] flex flex-col items-center overflow-y-scroll">
                 {messageList.map((doc) => {
                     return <ChatMessageBox key={doc.id} isMyMessage={doc.data().isFromCaller === isCaller} message={doc.data().message} />

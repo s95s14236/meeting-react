@@ -26,6 +26,7 @@ const MeetingRoom = (props) => {
     const [isEnableCamera, setIsEnableCamera] = useState(false);
     const [isEnableMicrophone, setIsEnableMicrophone] = useState(false);
     const [isShowInfo, setIsShowInfo] = useState(false);
+    const [isShowChat, setIsShowChat] = useState(false);
     const [popupInfo, setPopupInfo] = useState({ isShowPopup: false, popupMessage: '' });
     const [isCaller, setIsCaller] = useState(false);
 
@@ -209,25 +210,49 @@ const MeetingRoom = (props) => {
         setIsJoin(false);
     };
 
+    /**
+     * toggle 顯示會議資訊
+     */
     const toggleInfo = () => {
-        setIsShowInfo((prev) => !prev)
+        setIsShowInfo((prev) => !prev);
+        setIsShowChat(false);
     };
 
+    /**
+     * toggle 顯示聊天室
+     */
+    const toggleChat = () => {
+        setIsShowChat(prev => !prev);
+        setIsShowInfo(false);
+    }
+
+    /**
+     * toggle 相機
+     */
     const toggleCamera = () => {
         localStream.getVideoTracks()[0].enabled = !(localStream.getVideoTracks()[0].enabled);
         setIsEnableCamera(localStream.getVideoTracks()[0].enabled);
     }
 
+    /**
+     * toggle 麥克風
+     */
     const toggleMicrophone = () => {
         localStream.getAudioTracks()[0].enabled = !(localStream.getAudioTracks()[0].enabled);
         setIsEnableMicrophone(localStream.getAudioTracks()[0].enabled);
     }
 
+    /**
+     * 更新目前視訊／音訊按鈕狀態
+     */
     const checkCameraAndMicrophone = () => {
         setIsEnableMicrophone(localStream.getAudioTracks()[0].enabled);
         setIsEnableCamera(localStream.getVideoTracks()[0].enabled);
     }
 
+    /**
+     * 註冊rtc連線事件
+     */
     const registerPeerConnectionListeners = () => {
         pc.oniceconnectionstatechange = () => {
             console.log(pc.iceConnectionState);
@@ -242,18 +267,24 @@ const MeetingRoom = (props) => {
         }
     }
 
+    /**
+     * 複製會議url
+     */
     const copyUrl = () => {
         console.log(`${window.location.href}${callID}`);
         navigator.clipboard.writeText(`${window.location.href}${callID}`);
     }
 
+    /**
+     * 解除rtc連線事件訂閱
+     */
     const unSubscribePCEvent = () => {
         pc.oniceconnectionstatechange = null;
     }
 
     return (
         <div className="flex flex-row">
-            <div className='relative w-[100vw] h-[100vh] sm:w-[75vw] '>
+            <div className='relative w-[100vw] h-[100vh] sm:w-[100vw] '>
                 <video className="absolute left-4 top-4 w-24 sm:w-48 h-36 sm:h-36 rounded-md bg-black" ref={localVideo} autoPlay muted playsInline ></video>
                 <video className="w-full h-full bg-black" ref={remoteVideo} autoPlay playsInline></video>
                 <div className='absolute bottom-8 left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%] w-80 flex flex-row items-center justify-around'>
@@ -280,7 +311,7 @@ const MeetingRoom = (props) => {
                         </svg>
                     </button>
                 </div>
-                <div className='absolute bottom-[85vh] right-8 sm:bottom-24 sm:right-8'>
+                <div className='absolute bottom-[85vh] right-8 sm:bottom-24 sm:right-8 flex flex-row'>
                     <button
                         onClick={toggleInfo}
                         className={(isShowInfo ? "bg-gray-300 hover:bg-gray-400" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-8 h-8 rounded-full"}
@@ -289,15 +320,23 @@ const MeetingRoom = (props) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </button>
+                    <button
+                        onClick={toggleChat}
+                        className={(isShowChat ? "bg-gray-300 hover:bg-gray-400" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-8 h-8 rounded-full ml-2"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+                        </svg>
+                    </button>
                 </div>
                 {isShowInfo
                     && callID !== ''
-                    && <div className='w-[95vw] h-40 sm:w-100 sm:h-40 p-4 absolute bottom-[40vh] left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%]
-                sm:bottom-40 sm:left-auto sm:right-12 sm:translate-x-0 sm:translate-y-0 bg-white rounded-md'>
+                    && <div className='w-[95vw] h-40 sm:max-w-lg sm:h-40 p-4 absolute bottom-[40vh] left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%]
+                sm:bottom-40 sm:left-auto sm:right-12 sm:translate-x-0 sm:translate-y-0 bg-white rounded-md shadow-md'>
                         會議代碼：<br />{callID}<br /><br />
                         會議連結：<br />
-                        <div className='flex items-center justify-center'>
-                            {window.location.href + callID}
+                        <div className='flex items-center justify-center w-full'>
+                            <div className=' max-w[85%] text-ellipsis overflow-hidden'>{window.location.href + callID}</div>
                             <button onClick={copyUrl} className="ml-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -307,15 +346,18 @@ const MeetingRoom = (props) => {
                     </div>}
 
                 {
-                    popupInfo.isShowPopup && <div className='w-80 h-40 p-4 absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] bg-white rounded-md text-red-800 flex justify-center items-center'>
+                    popupInfo.isShowPopup && <div className='w-80 h-40 p-4 absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] bg-white rounded-md text-red-800 flex justify-center items-center shadow-md'>
                         {popupInfo.popupMessage}
+                    </div>
+                }
+
+                {
+                    isShowChat && <div className='absolute top-[16.5vh] left-1/2 right-1/2 translate-x-[-50%] sm:top-auto sm:left-auto sm:right-4 sm:bottom-40 sm:translate-x-0 w-[95%] h-[70vh] sm:w-[25vw] sm:h-[70vh] py-4 bg-slate-100 rounded-md shadow-md'>
+                        {callID !== '' && <Chat channelID={callID} isCaller={isCaller} />}
                     </div>
                 }
             </div>
 
-            <div className='sm:w-[25vw] sm:h-[100vh] py-4'>
-                {callID !== '' && <Chat channelID={callID} isCaller={isCaller} />}
-            </div>
         </div>
     );
 }
