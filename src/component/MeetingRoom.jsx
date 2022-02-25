@@ -16,6 +16,7 @@ const server = {
 
 let pc = null;
 let localStream = null;
+let localScreenStream = null;
 let remoteStream = null;
 
 const MeetingRoom = (props) => {
@@ -23,18 +24,22 @@ const MeetingRoom = (props) => {
     const [callID, setCallID] = useState('');
     const localVideo = useRef();
     const remoteVideo = useRef();
+    const shareScreenBtn = useRef();
     const [isEnableCamera, setIsEnableCamera] = useState(false);
     const [isEnableMicrophone, setIsEnableMicrophone] = useState(false);
+    const [isScreenSharing, setIsScreenSharing] = useState(false);
     const [isShowInfo, setIsShowInfo] = useState(false);
     const [isShowChat, setIsShowChat] = useState(false);
     const [popupInfo, setPopupInfo] = useState({ isShowPopup: false, popupMessage: '' });
     const [isCaller, setIsCaller] = useState(false);
 
     useEffect(() => {
+        console.log('MeetingRoom init');
         pc = new RTCPeerConnection(server);
         registerPeerConnectionListeners();
-        startWebcam().then(() => {
+        startWebcamTrack().then(() => {
             checkCameraAndMicrophone();
+            subscribeRemoteTrack();
             if (channelID !== '') {
                 setCallID(channelID);
                 // callID.current = channelID;
@@ -48,28 +53,39 @@ const MeetingRoom = (props) => {
         }).catch(error => {
             console.error(error);
         });
+
+        return () => {
+            console.log('MeetingRoom deinit');
+            hangup();
+        }
     }, []);
 
     /**
      * 初始化鏡頭&麥克風
      */
-    const startWebcam = async () => {
+    const startWebcamTrack = async () => {
         console.log('startWebcam');
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         // localStream = await navigator.mediaDevices.getDisplayMedia();
-        remoteStream = new MediaStream();
 
         localStream.getTracks().forEach((track) => {
             pc.addTrack(track, localStream);
         })
 
+        localVideo.current.srcObject = localStream;
+    }
+
+    /**
+     * 訂閱遠端Track
+     */
+    const subscribeRemoteTrack = () => {
+        console.log('subscribeRemoteTrack');
+        remoteStream = new MediaStream();
         pc.ontrack = (event) => {
             event.streams[0].getTracks().forEach((track) => {
                 remoteStream.addTrack(track);
             });
         };
-
-        localVideo.current.srcObject = localStream
         remoteVideo.current.srcObject = remoteStream;
     }
 
@@ -172,8 +188,9 @@ const MeetingRoom = (props) => {
         console.log('hangup');
         if (!pc) return;
 
-        localStream.getAudioTracks()[0].stop();
-        localStream.getVideoTracks()[0].stop();
+        localStream && localStream.getAudioTracks()[0].stop();
+        localStream && localStream.getVideoTracks()[0].stop();
+        localScreenStream && localScreenStream.getVideoTracks()[0].stop();
 
         pc.ontrack = null;
         pc.onicecandidate = null;
@@ -243,6 +260,66 @@ const MeetingRoom = (props) => {
     }
 
     /**
+     * 當按下螢幕分享畫面
+     */
+    const toggleShareScreen = async () => {
+        if (isScreenSharing) {
+            setPopupInfo({isShowPopup: true, popupMessage: `請透過'停止共用'結束分享`});
+            setTimeout(() => {
+                setPopupInfo({isShowPopup: false, popupMessage: ``});
+            }, 3000);
+        } else {
+            await setScreenTrack().catch(error => {
+                console.error('setScreenTrack FAIL, error: ', error);
+                return;
+            });
+            setIsScreenSharing(!isScreenSharing);
+        }
+    }
+
+    /**
+     * 切換至螢幕分享畫面
+     */
+    const setScreenTrack = async () => {
+        console.log("startScreenTrack");
+        const config = {
+            video: {
+                cursor: "always"
+            }
+        }
+        localScreenStream = await navigator.mediaDevices.getDisplayMedia(config).catch(error => {
+            console.error('getDisplayMedia FAIL, error: ', error);
+            return;
+        });
+        localScreenStream.getVideoTracks()[0].onended = () => {
+            console.log('track-ended');
+            setVideoTrack();
+            setIsScreenSharing(false);
+        }
+
+        pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === 'video') {
+                sender.replaceTrack(localScreenStream.getVideoTracks()[0]);
+            }
+        })
+        localVideo.current.srcObject = localScreenStream;
+    }
+
+    /**
+     * 切換至我的視訊畫面
+     */
+    const setVideoTrack = () => {
+        console.log("setVideoTrack");
+
+        pc.getSenders().forEach((sender) => {
+            if (sender.track && sender.track.kind === 'video') {
+                sender.replaceTrack(localStream.getVideoTracks()[0]);
+            }
+        })
+        localVideo.current.srcObject = localStream;
+    }
+
+    /**
      * 更新目前視訊／音訊按鈕狀態
      */
     const checkCameraAndMicrophone = () => {
@@ -256,14 +333,24 @@ const MeetingRoom = (props) => {
     const registerPeerConnectionListeners = () => {
         pc.oniceconnectionstatechange = () => {
             console.log(pc.iceConnectionState);
-            if (pc.iceConnectionState === 'disconnected') {
-                console.log('remote Disconnected');
-                // remoteVideo.current.srcObject = null;
-                setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
-                setTimeout(() => {
-                    hangup();
-                }, 3000)
+            switch (pc.iceConnectionState) {
+                case 'connected':
+                    console.log('remote connected');
+
+                    break;
+                case 'disconnected':
+                    console.log('remote Disconnected');
+                    // remoteVideo.current.srcObject = null;
+                    setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
+                    setTimeout(() => {
+                        hangup();
+                    }, 3000)
+                    break;
+
+                default:
+                    break;
             }
+
         }
     }
 
@@ -287,7 +374,7 @@ const MeetingRoom = (props) => {
             <div className='relative w-[100vw] h-[100vh] sm:w-[100vw] '>
                 <video className="absolute left-4 top-4 w-24 sm:w-48 h-36 sm:h-36 rounded-md bg-black" ref={localVideo} autoPlay muted playsInline ></video>
                 <video className="w-full h-full bg-black" ref={remoteVideo} autoPlay playsInline></video>
-                <div className='absolute bottom-8 left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%] w-80 flex flex-row items-center justify-around'>
+                <div className='absolute bottom-8 left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%] w-80 sm:w-96 flex flex-row items-center justify-around'>
                     <button className="flex justify-center items-center w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-600 hover:bg-red-700" onClick={hangup} >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 sm:h-10 sm:w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
@@ -308,6 +395,15 @@ const MeetingRoom = (props) => {
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 sm:h-10 sm:w-10 text-white" viewBox="0 0 20 20" fill="currentColor">
                             <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                        </svg>
+                    </button>
+                    <button
+                        ref={shareScreenBtn}
+                        onClick={toggleShareScreen}
+                        className={(isScreenSharing ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-16 h-16 sm:w-20 sm:h-20 rounded-full invisible sm:visible"}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 sm:h-10 sm:w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
                     </button>
                 </div>
