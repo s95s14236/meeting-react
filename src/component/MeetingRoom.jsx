@@ -21,6 +21,7 @@ let remoteStream = null;
 
 const MeetingRoom = (props) => {
     const { channelID, setIsJoin } = props;
+    const [screenWidth, setScreenWidth] = useState(window.innerWidth);
     const [callID, setCallID] = useState('');
     const localVideo = useRef();
     const remoteVideo = useRef();
@@ -35,6 +36,9 @@ const MeetingRoom = (props) => {
 
     useEffect(() => {
         console.log('MeetingRoom init');
+        window.onresize = () => {
+            setScreenWidth(window.innerWidth);
+        }
         pc = new RTCPeerConnection(server);
         registerPeerConnectionListeners();
         startWebcamTrack().then(() => {
@@ -56,6 +60,7 @@ const MeetingRoom = (props) => {
 
         return () => {
             console.log('MeetingRoom deinit');
+            window.onresize = null;
             hangup();
         }
     }, []);
@@ -397,15 +402,15 @@ const MeetingRoom = (props) => {
                             <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
                         </svg>
                     </button>
-                    <button
+                    {screenWidth > 768 && <button
                         ref={shareScreenBtn}
                         onClick={toggleShareScreen}
-                        className={(isScreenSharing ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-16 h-16 sm:w-20 sm:h-20 rounded-full invisible sm:visible"}
+                        className={(isScreenSharing ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-500 hover:bg-gray-600") + " flex justify-center items-center w-16 h-16 sm:w-20 sm:h-20 rounded-full"}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 sm:h-10 sm:w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                         </svg>
-                    </button>
+                    </button>}
                 </div>
                 <div className='absolute bottom-[85vh] right-8 sm:bottom-24 sm:right-8 flex flex-row'>
                     <button
