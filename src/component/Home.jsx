@@ -1,20 +1,23 @@
 import { useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { join } from '../actions';
 import '../App.css'
 
 const Home = (props) => {
-    const { setIsJoin, channelID, setChannelID } = props;
+    const { channelID, setChannelID } = props;
+    const dispatch = useDispatch();
     const [errorInfo, setErrorInfo] = useState({isShowError: false, errorMessage: ''});
 
     const onCreateClick = () => {
         console.log('onCreateClick');
-        setIsJoin(true);
+        dispatch(join());
     };
 
     const onJoinClick = () => {
         console.log('onJoinClick');
         if (channelID && channelID.trim() !== '') {
             setErrorInfo({isShowError: false, errorMessage: ''});
-            setIsJoin(true);
+            dispatch(join());
         } else {
             setErrorInfo({isShowError: true, errorMessage: '加入失敗'});
         }

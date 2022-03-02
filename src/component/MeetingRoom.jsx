@@ -4,6 +4,8 @@ import { db } from '../firebase';
 
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import Chat from './Chat';
+import { useDispatch } from 'react-redux';
+import { leave } from '../actions';
 
 const server = {
     iceServers: [
@@ -20,7 +22,8 @@ let localScreenStream = null;
 let remoteStream = null;
 
 const MeetingRoom = (props) => {
-    const { channelID, setIsJoin } = props;
+    const { channelID } = props;
+    const dispatch = useDispatch();
     const [screenWidth, setScreenWidth] = useState(window.innerWidth);
     const [callID, setCallID] = useState('');
     const localVideo = useRef();
@@ -229,7 +232,7 @@ const MeetingRoom = (props) => {
             })
         }
 
-        setIsJoin(false);
+        dispatch(leave());
     };
 
     /**

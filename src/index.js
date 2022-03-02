@@ -4,6 +4,14 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Provider } from 'react-redux';
+import { createStore } from 'redux';
+import allReducers from './reducers';
+
+const store = createStore(
+  allReducers,
+  window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__()
+);
 
 ReactDOM.render(
   <React.StrictMode>
@@ -11,12 +19,14 @@ ReactDOM.render(
       name='viewport'
       content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'
     />
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<App />}></Route>
-        <Route path="/:joinChannelID" element={<App />}></Route>
-      </Routes>
-    </BrowserRouter>
+    <Provider store={store}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<App />}></Route>
+          <Route path="/:joinChannelID" element={<App />}></Route>
+        </Routes>
+      </BrowserRouter>
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root')
 );

@@ -1,26 +1,29 @@
 // import './App.css';
 
 import { useEffect, useState } from "react";
-import { Route, Routes, useParams } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { useParams } from "react-router-dom";
+import { join } from "./actions";
 import Home from "./component/Home";
 import MeetingRoom from "./component/MeetingRoom";
-// import { usePa}ß
 
 function App() {
-  const [isJoin, setIsJoin] = useState(false);
+  // const [isJoin, setIsJoin] = useState(false);
   const [channelID, setChannelID] = useState('');
   const { joinChannelID } = useParams();
+  const isJoin = useSelector(state => state.isJoin);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     if (joinChannelID) {
       setChannelID(joinChannelID)
-      setIsJoin(true)
+      dispatch(join());
     }
   }, []);
 
   return (
     <div className="App">
-      {isJoin ? <MeetingRoom channelID={channelID} setIsJoin={setIsJoin} /> : <Home setIsJoin={setIsJoin} channelID={channelID} setChannelID={setChannelID} />}
+      {isJoin ? <MeetingRoom channelID={channelID} /> : <Home channelID={channelID} setChannelID={setChannelID} />}
     </div>
   );
 }
