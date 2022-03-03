@@ -5,7 +5,8 @@ import { db } from '../firebase';
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import Chat from './Chat';
 import { useDispatch } from 'react-redux';
-import { leave } from '../actions';
+import { leave, setChannelID, unsetChannelID } from '../actions';
+import { useSelector } from 'react-redux';
 
 const server = {
     iceServers: [
@@ -21,11 +22,10 @@ let localStream = null;
 let localScreenStream = null;
 let remoteStream = null;
 
-const MeetingRoom = (props) => {
-    const { channelID } = props;
+const MeetingRoom = () => {
     const dispatch = useDispatch();
+    const channelID = useSelector(state => state.channelID);
     const [screenWidth, setScreenWidth] = useState(window.innerWidth);
-    const [callID, setCallID] = useState('');
     const localVideo = useRef();
     const remoteVideo = useRef();
     const shareScreenBtn = useRef();
@@ -36,6 +36,12 @@ const MeetingRoom = (props) => {
     const [isShowChat, setIsShowChat] = useState(false);
     const [popupInfo, setPopupInfo] = useState({ isShowPopup: false, popupMessage: '' });
     const [isCaller, setIsCaller] = useState(false);
+    const isCallerRef = useRef();
+    const channelIDRef = useRef();
+     
+    isCallerRef.current = isCaller;
+    channelIDRef.current = channelID;
+
 
     useEffect(() => {
         console.log('MeetingRoom init');
@@ -48,8 +54,7 @@ const MeetingRoom = (props) => {
             checkCameraAndMicrophone();
             subscribeRemoteTrack();
             if (channelID !== '') {
-                setCallID(channelID);
-                // callID.current = channelID;
+                dispatch(setChannelID(channelID));
                 joinCall();
             } else {
                 setIsCaller(true);
@@ -65,6 +70,7 @@ const MeetingRoom = (props) => {
             console.log('MeetingRoom deinit');
             window.onresize = null;
             hangup();
+            dispatch(unsetChannelID());
         }
     }, []);
 
@@ -74,7 +80,6 @@ const MeetingRoom = (props) => {
     const startWebcamTrack = async () => {
         console.log('startWebcam');
         localStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-        // localStream = await navigator.mediaDevices.getDisplayMedia();
 
         localStream.getTracks().forEach((track) => {
             pc.addTrack(track, localStream);
@@ -106,7 +111,7 @@ const MeetingRoom = (props) => {
         const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
         const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
 
-        setCallID(docRef.id)
+        dispatch(setChannelID(docRef.id));
 
         pc.onicecandidate = event => {
             console.log('onicecandidate', event);
@@ -219,15 +224,16 @@ const MeetingRoom = (props) => {
         pc.close();
         pc = null;
 
-        const docRef = doc(db, "calls", callID);
-        if (isCaller) {
-            const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
-            (await getDocs(query(offerCandidatesRef))).docs.forEach((doc) => {
+        if (isCallerRef.current) {
+            console.log('I am caller');
+            const offerCandidatesRef = collection(db, "calls", channelIDRef.current, 'offerCandidates');
+            (await getDocs(offerCandidatesRef)).docs.forEach((doc) => {
                 deleteDoc(doc.ref);
             })
         } else {
-            const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
-            (await getDocs(query(answerCandidatesRef))).forEach(async (doc) => {
+            console.log('I am callee');
+            const answerCandidatesRef = collection(db, "calls", channelIDRef.current, 'answerCandidates');
+            (await getDocs(answerCandidatesRef)).docs.forEach((doc) => {
                 deleteDoc(doc.ref);
             })
         }
@@ -366,8 +372,8 @@ const MeetingRoom = (props) => {
      * 複製會議url
      */
     const copyUrl = () => {
-        console.log(`${window.location.href}${callID}`);
-        navigator.clipboard.writeText(`${window.location.href}${callID}`);
+        console.log(`${window.location.href}${channelID}`);
+        navigator.clipboard.writeText(`${window.location.href}${channelID}`);
     }
 
     /**
@@ -434,13 +440,13 @@ const MeetingRoom = (props) => {
                     </button>
                 </div>
                 {isShowInfo
-                    && callID !== ''
+                    && channelID !== ''
                     && <div className='w-[95vw] h-40 sm:max-w-lg sm:h-40 p-4 absolute bottom-[40vh] left-1/2 right-1/2 translate-x-[-50%] translate-y-[-50%]
                 sm:bottom-40 sm:left-auto sm:right-12 sm:translate-x-0 sm:translate-y-0 bg-white rounded-md shadow-md'>
-                        會議代碼：<br />{callID}<br /><br />
+                        會議代碼：<br />{channelID}<br /><br />
                         會議連結：<br />
                         <div className='flex items-center justify-center w-full'>
-                            <div className=' max-w[85%] text-ellipsis overflow-hidden'>{window.location.href + callID}</div>
+                            <div className=' max-w[85%] text-ellipsis overflow-hidden'>{window.location.href + channelID}</div>
                             <button onClick={copyUrl} className="ml-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
@@ -457,7 +463,7 @@ const MeetingRoom = (props) => {
 
                 {
                     isShowChat && <div className='absolute top-[16.5vh] left-1/2 right-1/2 translate-x-[-50%] sm:top-auto sm:left-auto sm:right-4 sm:bottom-40 sm:translate-x-0 w-[95%] h-[70vh] sm:w-[25vw] sm:h-[70vh] py-4 bg-slate-100 rounded-md shadow-md'>
-                        {callID !== '' && <Chat channelID={callID} isCaller={isCaller} />}
+                        {channelID !== '' && <Chat isCaller={isCaller} />}
                     </div>
                 }
             </div>

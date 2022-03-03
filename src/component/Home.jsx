@@ -1,10 +1,11 @@
 import { useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { join } from '../actions';
+import { join, setChannelID } from '../actions';
 import '../App.css'
 
-const Home = (props) => {
-    const { channelID, setChannelID } = props;
+const Home = () => {
+    const channelID = useSelector(state => state.channelID);
     const dispatch = useDispatch();
     const [errorInfo, setErrorInfo] = useState({isShowError: false, errorMessage: ''});
 
@@ -46,7 +47,7 @@ const Home = (props) => {
                             或
                             <input
                                 className="pl-2 h-12 mt-2 rounded-md border-2 border-gray-500 sm:ml-4 sm:mt-0" placeholder="輸入會議代碼"
-                                onChange={(e) => setChannelID(e.target.value)}
+                                onChange={(e) => dispatch(setChannelID(e.target.value))}
                             />
                             {errorInfo.isShowError && <p className='pl-1 text-red-700'>{errorInfo.errorMessage}</p>}
                             <button

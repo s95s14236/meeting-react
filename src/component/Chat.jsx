@@ -1,10 +1,12 @@
 import { addDoc, collection, doc, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
 import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
 import { db } from "../firebase";
 import ChatMessageBox from "./ChatMessageBox";
 
 const Chat = (props) => {
-    const { channelID, isCaller } = props;
+    const { isCaller } = props;
+    const channelID = useSelector(state => state.channelID);
     const [messageList, setMessageList] = useState([]);
     const [message, setMessage] = useState('');
 
