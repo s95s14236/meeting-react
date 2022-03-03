@@ -2,12 +2,12 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyC3oqkUEn7KF9wDV2-pPYR0w_-ovrnxPTs",
-    authDomain: "meeting-6a4a2.firebaseapp.com",
-    projectId: "meeting-6a4a2",
-    storageBucket: "meeting-6a4a2.appspot.com",
-    messagingSenderId: "654889178463",
-    appId: "1:654889178463:web:9f9de90607b4498fc3d2ea"
+    apiKey: process.env.FIREBASE_APIKEY,
+    authDomain: process.env.FIREBASE_AUTHDOMAIN,
+    projectId: process.env.FIREBASE_PROJECTID,
+    storageBucket: process.env.FIREBASE_STORAGEBUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGINGSENDERID,
+    appId: process.env.FIREBASE_APPID
 }
 
 const app = initializeApp(firebaseConfig);
