@@ -1,12 +1,13 @@
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 
 import { db } from '../firebase';
 
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import Chat from './Chat';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { leave, setChannelID, unsetChannelID } from '../actions';
-import { useSelector } from 'react-redux';
+import { SocketContext } from '../context/SocketContext';
+import { useNavigate } from 'react-router-dom';
 
 const server = {
     iceServers: [
@@ -23,8 +24,10 @@ let localScreenStream = null;
 let remoteStream = null;
 
 const MeetingRoom = () => {
-    const dispatch = useDispatch();
     const channelID = useSelector(state => state.channelID);
+    const user = useSelector(state => state.user);
+    const socket = useContext(SocketContext);
+    const dispatch = useDispatch();
     const [screenWidth, setScreenWidth] = useState(window.innerWidth);
     const localVideo = useRef();
     const remoteVideo = useRef();
@@ -38,10 +41,10 @@ const MeetingRoom = () => {
     const [isCaller, setIsCaller] = useState(false);
     const isCallerRef = useRef();
     const channelIDRef = useRef();
-     
+    const navigate = useNavigate();
+
     isCallerRef.current = isCaller;
     channelIDRef.current = channelID;
-
 
     useEffect(() => {
         console.log('MeetingRoom init');
@@ -55,15 +58,29 @@ const MeetingRoom = () => {
             subscribeRemoteTrack();
             if (channelID !== '') {
                 dispatch(setChannelID(channelID));
-                joinCall();
+                joinCall()
+
             } else {
                 setIsCaller(true);
                 createCall().then(() => {
                     setIsShowInfo(true);
                 });
             }
+            socket.emit('join', { userId: user.id, room: channelIDRef.current });
         }).catch(error => {
             console.error(error);
+        });
+
+        socket.on('participant-joined', (participant) => {
+            console.log('participant-joined/ user: ', participant.user);
+        });
+
+        socket.on('participant-left', (participant) => {
+            console.log('participant-left/ user: ', participant.user);
+            setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
+            setTimeout(() => {
+                hangup();
+            }, 3000)
         });
 
         return () => {
@@ -239,6 +256,8 @@ const MeetingRoom = () => {
         }
 
         dispatch(leave());
+        navigate('/', { replace: true });
+        socket.disconnect();
     };
 
     /**
@@ -278,16 +297,17 @@ const MeetingRoom = () => {
      */
     const toggleShareScreen = async () => {
         if (isScreenSharing) {
-            setPopupInfo({isShowPopup: true, popupMessage: `請透過'停止共用'結束分享`});
+            setPopupInfo({ isShowPopup: true, popupMessage: `請透過'停止共用'結束分享` });
             setTimeout(() => {
-                setPopupInfo({isShowPopup: false, popupMessage: ``});
+                setPopupInfo({ isShowPopup: false, popupMessage: `` });
             }, 3000);
         } else {
-            await setScreenTrack().catch(error => {
+            await setScreenTrack().then(() => {
+                setIsScreenSharing(!isScreenSharing);
+            }).catch(error => {
                 console.error('setScreenTrack FAIL, error: ', error);
                 return;
             });
-            setIsScreenSharing(!isScreenSharing);
         }
     }
 
@@ -355,10 +375,12 @@ const MeetingRoom = () => {
                 case 'disconnected':
                     console.log('remote Disconnected');
                     // remoteVideo.current.srcObject = null;
-                    setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
-                    setTimeout(() => {
-                        hangup();
-                    }, 3000)
+                    if (!popupInfo.isShowPopup && popupInfo.popupMessage !== '對方已結束通話') {
+                        setPopupInfo({ isShowPopup: true, popupMessage: '對方已結束通話' });
+                        setTimeout(() => {
+                            hangup();
+                        }, 3000)
+                    }
                     break;
 
                 default:

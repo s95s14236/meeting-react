@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import allReducers from './reducers';
+import { SocketProvider } from './context/SocketContext';
 
 const store = createStore(
   allReducers,
@@ -20,12 +21,14 @@ ReactDOM.render(
       content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0'
     />
     <Provider store={store}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<App />}></Route>
-          <Route path="/:joinChannelID" element={<App />}></Route>
-        </Routes>
-      </BrowserRouter>
+      <SocketProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<App />}></Route>
+            <Route path="/:joinChannelID" element={<App />}></Route>
+          </Routes>
+        </BrowserRouter>
+      </SocketProvider>
     </Provider>
   </React.StrictMode>,
   document.getElementById('root')

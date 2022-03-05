@@ -1,12 +1,12 @@
-import { addDoc, collection, doc, onSnapshot, orderBy, query, setDoc } from "firebase/firestore";
+import { addDoc, collection, doc, onSnapshot, orderBy, query } from "firebase/firestore";
 import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { db } from "../firebase";
 import ChatMessageBox from "./ChatMessageBox";
 
-const Chat = (props) => {
-    const { isCaller } = props;
+const Chat = () => {
     const channelID = useSelector(state => state.channelID);
+    const user = useSelector(state => state.user);
     const [messageList, setMessageList] = useState([]);
     const [message, setMessage] = useState('');
 
@@ -33,7 +33,7 @@ const Chat = (props) => {
     const sendMessage = async () => {
         const callDocRef = doc(db, 'calls', channelID);
         const chatMessagesRef = collection(db, callDocRef.path, 'chatMessages');
-        await addDoc(chatMessagesRef, { createAt: new Date(), isFromCaller: (isCaller ? true : false), message: message });
+        await addDoc(chatMessagesRef, { createAt: new Date(), fromUser: user.id, message: message });
         setMessage('');
     }
 
@@ -41,7 +41,7 @@ const Chat = (props) => {
         <div className="w-full h-full sm:w-full sm:h-full bg-slate-50">
             <div className="w-full h-[90%] flex flex-col items-center overflow-y-scroll">
                 {messageList.map((doc) => {
-                    return <ChatMessageBox key={doc.id} isMyMessage={doc.data().isFromCaller === isCaller} message={doc.data().message} />
+                    return <ChatMessageBox key={doc.id} fromUser={doc.data().fromUser} message={doc.data().message} />
                 })}
 
             </div>
