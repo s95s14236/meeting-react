@@ -30,11 +30,25 @@ const Chat = () => {
     /**
      * 發送訊息
      */
-    const sendMessage = async () => {
+    const sendMessage = () => {
+        if (message.trim() === '') {
+            return;
+        }
         const callDocRef = doc(db, 'calls', channelID);
         const chatMessagesRef = collection(db, callDocRef.path, 'chatMessages');
-        await addDoc(chatMessagesRef, { createAt: new Date(), fromUser: user.id, message: message });
-        setMessage('');
+        addDoc(chatMessagesRef, { createAt: new Date(), fromUser: user.id, message: message }).then(() => {
+            setMessage('');
+        });
+    }
+
+    /**
+     * 監聽message input keydown enter
+     */
+    const onKeyDown = (event) => {
+        console.log(event);
+        if (event.key === "Enter") {
+            sendMessage();
+        }
     }
 
     return (
@@ -47,7 +61,7 @@ const Chat = () => {
             </div>
 
             <div className="sm:w-full sm:h-[10%] flex justify-center items-center">
-                <input className="border-2 border-slate-400 w-3/4 h-9" onChange={(e) => setMessage(e.target.value)} value={message} />
+                <input className="border-2 border-slate-400 w-3/4 h-9" onChange={(e) => setMessage(e.target.value)} onKeyDown={(e) => onKeyDown(e)} value={message} />
                 <button className=" rotate-90 ml-4" onClick={sendMessage}>
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-slate-700 hover:text-slate-900 active:scale-95" viewBox="0 0 20 20" fill="currentColor">
                         <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />

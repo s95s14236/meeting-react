@@ -8,6 +8,7 @@ import { Provider } from 'react-redux';
 import { createStore } from 'redux';
 import allReducers from './reducers';
 import { SocketProvider } from './context/SocketContext';
+import MeetingRoom from './component/MeetingRoom';
 
 const store = createStore(
   allReducers,
@@ -25,7 +26,8 @@ ReactDOM.render(
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<App />}></Route>
-            <Route path="/:joinChannelID" element={<App />}></Route>
+            <Route path="/:joinChannelID" element={<MeetingRoom />}></Route>
+            <Route path="/meet/:createChannelID" element={<MeetingRoom />}></Route>
           </Routes>
         </BrowserRouter>
       </SocketProvider>

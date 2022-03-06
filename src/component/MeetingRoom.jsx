@@ -5,9 +5,9 @@ import { db } from '../firebase';
 import { collection, getDoc, doc, addDoc, onSnapshot, updateDoc, query, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import Chat from './Chat';
 import { useDispatch, useSelector } from 'react-redux';
-import { leave, setChannelID, unsetChannelID } from '../actions';
+import { setChannelID, unsetChannelID } from '../actions';
 import { SocketContext } from '../context/SocketContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const server = {
     iceServers: [
@@ -24,6 +24,7 @@ let localScreenStream = null;
 let remoteStream = null;
 
 const MeetingRoom = () => {
+    const { joinChannelID, createChannelID } = useParams();
     const channelID = useSelector(state => state.channelID);
     const user = useSelector(state => state.user);
     const socket = useContext(SocketContext);
@@ -56,15 +57,18 @@ const MeetingRoom = () => {
         startWebcamTrack().then(() => {
             checkCameraAndMicrophone();
             subscribeRemoteTrack();
-            if (channelID !== '') {
-                dispatch(setChannelID(channelID));
-                joinCall()
-
-            } else {
+            if (createChannelID) {
+                // caller
                 setIsCaller(true);
                 createCall().then(() => {
                     setIsShowInfo(true);
                 });
+                // 更改url
+                navigate(`/${createChannelID}`, {replace: true});
+            } else {
+                // callee
+                dispatch(setChannelID(joinChannelID));
+                joinCall()
             }
             socket.emit('join', { userId: user.id, room: channelIDRef.current });
         }).catch(error => {
@@ -87,7 +91,6 @@ const MeetingRoom = () => {
             console.log('MeetingRoom deinit');
             window.onresize = null;
             hangup();
-            dispatch(unsetChannelID());
         }
     }, []);
 
@@ -123,12 +126,10 @@ const MeetingRoom = () => {
      * 創建通話
      */
     const createCall = async () => {
-        console.log('createCall');
-        const docRef = doc(collection(db, "calls"));
+        console.log('createCall channelID: ', channelIDRef.current);
+        const docRef = doc(db, 'calls', channelIDRef.current)
         const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
         const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
-
-        dispatch(setChannelID(docRef.id));
 
         pc.onicecandidate = event => {
             console.log('onicecandidate', event);
@@ -170,7 +171,7 @@ const MeetingRoom = () => {
      */
     const joinCall = async () => {
         console.log('joinCall');
-        const docRef = doc(db, 'calls', channelID)
+        const docRef = doc(db, 'calls', channelIDRef.current)
         const callDoc = (await getDoc(docRef));
         const offerCandidatesRef = collection(db, docRef.path, 'offerCandidates');
         const answerCandidatesRef = collection(db, docRef.path, 'answerCandidates');
@@ -255,8 +256,8 @@ const MeetingRoom = () => {
             })
         }
 
-        dispatch(leave());
-        navigate('/', { replace: true });
+        dispatch(unsetChannelID());
+        navigate(-1);
         socket.disconnect();
     };
 

@@ -1,24 +1,30 @@
+import { collection, doc } from 'firebase/firestore';
+import { db } from '../firebase';
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { useDispatch } from 'react-redux';
-import { join, setChannelID } from '../actions';
+import { useNavigate } from 'react-router-dom';
+import { setChannelID } from '../actions';
 import '../App.css'
 
 const Home = () => {
     const channelID = useSelector(state => state.channelID);
     const dispatch = useDispatch();
     const [errorInfo, setErrorInfo] = useState({isShowError: false, errorMessage: ''});
+    const navigate = useNavigate();
 
     const onCreateClick = () => {
         console.log('onCreateClick');
-        dispatch(join());
+        const docRef = doc(collection(db, 'calls'));
+        dispatch(setChannelID(docRef.id));
+        navigate(`/meet/${docRef.id}`);
     };
 
     const onJoinClick = () => {
         console.log('onJoinClick');
         if (channelID && channelID.trim() !== '') {
             setErrorInfo({isShowError: false, errorMessage: ''});
-            dispatch(join());
+            navigate(`/${channelID}`);
         } else {
             setErrorInfo({isShowError: true, errorMessage: '加入失敗'});
         }
