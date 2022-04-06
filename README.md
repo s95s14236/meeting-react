@@ -1,5 +1,5 @@
 # Meeting Chat
-===
+
 This React app is based on WebRTC, which provides the video call, screen sharing, chatroom features.
 
 ## Demo link
