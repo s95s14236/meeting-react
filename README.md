@@ -1,6 +1,6 @@
 # Meeting Chat
 
-This React app is based on WebRTC and Socket.IO, which provides the video call, screen sharing, chatroom features.
+This one by one meeting app is based on WebRTC and Socket.IO, which provides the video call, screen sharing, chatroom features.
 
 ## Demo link
 Access site at [meeting-chat](https://meeting-chat.netlify.app/)
