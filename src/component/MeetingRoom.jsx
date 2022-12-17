@@ -72,6 +72,7 @@ const MeetingRoom = () => {
             }
             socket.emit('join', { userId: user.id, room: channelIDRef.current });
         }).catch(error => {
+            setPopupInfo({ isShowPopup: true, popupMessage: `未開啟 鏡頭 或 麥克風<br>請先開啟並重新整理` });
             console.error(error);
         });
 
@@ -242,22 +243,26 @@ const MeetingRoom = () => {
         pc.close();
         pc = null;
 
-        if (isCallerRef.current) {
-            console.log('I am caller');
-            const offerCandidatesRef = collection(db, "calls", channelIDRef.current, 'offerCandidates');
-            (await getDocs(offerCandidatesRef)).docs.forEach((doc) => {
-                deleteDoc(doc.ref);
-            })
-        } else {
-            console.log('I am callee');
-            const answerCandidatesRef = collection(db, "calls", channelIDRef.current, 'answerCandidates');
-            (await getDocs(answerCandidatesRef)).docs.forEach((doc) => {
-                deleteDoc(doc.ref);
-            })
+        try {
+            if (isCallerRef.current) {
+                console.log('I am caller');
+                const offerCandidatesRef = collection(db, "calls", channelIDRef.current, 'offerCandidates');
+                (await getDocs(offerCandidatesRef)).docs.forEach((doc) => {
+                    deleteDoc(doc.ref);
+                })
+            } else {
+                console.log('I am callee');
+                const answerCandidatesRef = collection(db, "calls", channelIDRef.current, 'answerCandidates');
+                (await getDocs(answerCandidatesRef)).docs.forEach((doc) => {
+                    deleteDoc(doc.ref);
+                })
+            }
+        } catch (error) {
+            console.error("destroy firebase FAIL, error:", error);
         }
 
         dispatch(unsetChannelID());
-        navigate(-1);
+        navigate("/", {replace: true});
         socket.disconnect();
     };
 
@@ -310,6 +315,13 @@ const MeetingRoom = () => {
                 return;
             });
         }
+    }
+
+    /**
+     * 關閉Popup
+     */
+    const closePopup = () => {
+        setPopupInfo({ isShowPopup: false, popupMessage: `` });
     }
 
     /**
@@ -479,8 +491,15 @@ const MeetingRoom = () => {
                     </div>}
 
                 {
-                    popupInfo.isShowPopup && <div className='w-80 h-40 p-4 absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] bg-white rounded-md text-red-800 flex justify-center items-center shadow-md'>
-                        {popupInfo.popupMessage}
+                    popupInfo.isShowPopup && <div className='w-80 h-40 p-4 absolute left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] bg-white rounded-md text-red-600 shadow-md'>
+                        <div className='w-full h-full flex justify-center items-center'>
+                            <span className='text-center' dangerouslySetInnerHTML={{__html: popupInfo.popupMessage}}></span>
+                            <button onClick={closePopup} className="absolute right-4 top-4">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 }
 
